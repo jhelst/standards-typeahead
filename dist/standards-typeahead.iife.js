@@ -434,6 +434,9 @@ StringBuilder.prototype.insert = function insert (pos, val) {
   return this;
 };
 
+/**
+ * Uri - manipulate URLs
+ */
 var TinyUri = function TinyUri(uri) {
   this.uriRegEx = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
   this.authRegEx = /^([^\@]+)\@/;
@@ -664,7 +667,6 @@ var StandardsTypeahead = (function (HTMLElement) {
     if (nVal && nVal !== '' && nVal !== oVal) {
       if (name === 'options' && this._options) {
         Object.assign(this._options, isJson(nVal) ? JSON.parse(nVal) : {});
-        console.log(this._options.list);
         if (this._options.list && typeof this._options.list[0] === 'object') {
           // if (!this._options.propertyInObjectArrayToUse) throw new Error('propertyInObjectArrayToUse required if list contains objects');
           this._options.list = this._options.list.map(function (li) { return li[this$1._options.propertyInObjectArrayToUse]; });
@@ -871,7 +873,15 @@ var StandardsTypeahead = (function (HTMLElement) {
    */
   StandardsTypeahead.prototype.getItemFromList = function getItemFromList (val, list) {
     if (this._options.list) {
-      var i = this._options.list.find(function (item) { return item.toLowerCase() === val.toLowerCase(); });
+      // console.log('list', this._options.list);
+      // let i = this._options.list.find((item) => {
+      //   console.log('item', item);
+      //   item.toLowerCase() === val.toLowerCase();
+      // });
+    var i = this._options.list.filter(function (item) {
+      item.fullName.includes(val);
+    });
+
       return Promise.resolve(i ? i : '');
     }
     // return makeRequest(this._options.source, val, this._options.queryParams)
@@ -897,6 +907,12 @@ var StandardsTypeahead = (function (HTMLElement) {
       var matches = findMatches(this.currentValue, this._options.list);
       this.updateDropdown(matches);
     } else if (this._options.externalURL) {
+        // let updateStr;
+        // if (this._options.uid) {
+        //   updateStr = this._options.uid + ":updateDropdownEvent";
+        // } else {
+        //   updateStr = 'updateDropdownEvent';
+        // }
         document.addEventListener('updateDropdownEvent', function(evt) {
           _this.updateDropdown(evt.detail.matches);
         });
@@ -1186,8 +1202,6 @@ var StandardsTypeahead = (function (HTMLElement) {
    */
    StandardsTypeahead.prototype.unbindItem = function unbindItem (item) {
      item.removeEventListener('click', this.selectedItemClickHandlers, false);
-    //  console.log('this.selectedItemClickHandlers AFTER', this.selectedItemClickHandlers);
-    //TODO: REMOVE SELECTEDITEMCLICKHANLERS
    };
 
   /*
@@ -1234,7 +1248,6 @@ var StandardsTypeahead = (function (HTMLElement) {
    * Calls bindSelectedItems() to set bindings
    */
   StandardsTypeahead.prototype.updateSelectedItems = function updateSelectedItems (items) {
-    console.log("items", items);
     var fragment = document.createDocumentFragment();
     [].forEach.call(items, function (item) {
       var div;

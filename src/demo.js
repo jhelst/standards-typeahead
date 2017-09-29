@@ -72,9 +72,8 @@ window.addEventListener('WebComponentsReady', function() {
       }
     },
     placeholder: 'US States',
-    propertyInObjectArrayToUse: 'name',
     requireSelectionFromList: true,
-    source: 'http://localhost:3000/states',
+    externalURL: true,
     uid: 'bar'
   };
 
@@ -90,6 +89,11 @@ window.addEventListener('WebComponentsReady', function() {
 
   angular.module('Test', []).controller('MainCtrl', function($scope) {
     $scope.options = options2;
+    document.addEventListener('bar:inputChangedEvent', function(evt) {
+    let matches = states2.filter((item) => item.fullName.toLowerCase().includes(evt.detail.value.toLowerCase()));
+    document.dispatchEvent(new CustomEvent('updateDropdownEvent', {detail: {matches: matches}}));
+  });
+
   });
 
   angular.element(function() {

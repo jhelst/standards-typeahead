@@ -68,7 +68,6 @@ class StandardsTypeahead extends HTMLElement {
     if (nVal && nVal !== '' && nVal !== oVal) {
       if (name === 'options' && this._options) {
         Object.assign(this._options, isJson(nVal) ? JSON.parse(nVal) : {});
-        console.log(this._options.list);
         if (this._options.list && typeof this._options.list[0] === 'object') {
           // if (!this._options.propertyInObjectArrayToUse) throw new Error('propertyInObjectArrayToUse required if list contains objects');
           this._options.list = this._options.list.map((li) => li[this._options.propertyInObjectArrayToUse]);
@@ -265,7 +264,15 @@ class StandardsTypeahead extends HTMLElement {
    */
   getItemFromList(val, list) {
     if (this._options.list) {
-      let i = this._options.list.find((item) => item.toLowerCase() === val.toLowerCase());
+      // console.log('list', this._options.list);
+      // let i = this._options.list.find((item) => {
+      //   console.log('item', item);
+      //   item.toLowerCase() === val.toLowerCase();
+      // });
+    let i = this._options.list.filter((item) => {
+      item.fullName.includes(val);
+    });
+
       return Promise.resolve(i ? i : '');
     }
     // return makeRequest(this._options.source, val, this._options.queryParams)
@@ -291,6 +298,12 @@ class StandardsTypeahead extends HTMLElement {
       let matches = findMatches(this.currentValue, this._options.list);
       this.updateDropdown(matches);
     } else if (this._options.externalURL) {
+        // let updateStr;
+        // if (this._options.uid) {
+        //   updateStr = this._options.uid + ":updateDropdownEvent";
+        // } else {
+        //   updateStr = 'updateDropdownEvent';
+        // }
         document.addEventListener('updateDropdownEvent', function(evt) {
           _this.updateDropdown(evt.detail.matches);
         });
@@ -572,8 +585,6 @@ class StandardsTypeahead extends HTMLElement {
    */
    unbindItem(item) {
      item.removeEventListener('click', this.selectedItemClickHandlers, false);
-    //  console.log('this.selectedItemClickHandlers AFTER', this.selectedItemClickHandlers);
-    //TODO: REMOVE SELECTEDITEMCLICKHANLERS
    }
 
   /*
@@ -618,7 +629,6 @@ class StandardsTypeahead extends HTMLElement {
    * Calls bindSelectedItems() to set bindings
    */
   updateSelectedItems(items) {
-    console.log("items", items);
     let fragment = document.createDocumentFragment();
     [].forEach.call(items, (item) => {
       let div;
