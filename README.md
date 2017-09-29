@@ -38,7 +38,6 @@ component.options = {
 - placeholder: (optional) Text to be used as the placeholder for the text input.
 - requireSelectionFromList: Whether to force the user to select one of the choices in the list.
 - externalURL: accepts Boolean *true*. If *true* component will dispatch *inputChangedEvent* with the input value, and listen for *updateDropdownEvent* event with the search results in an object.
-```
 
 ## Custom CSS Properties
 The component exposes the follow css custom properties:
