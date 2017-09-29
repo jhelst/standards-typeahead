@@ -66,10 +66,10 @@ document.dispatchEvent('foo:inputChangedEvent', (evt) => {
 ```
 Listens for a returning object, and uses this object to populate the dropdown
 ```Javascript
-    document.addEventListener('updateDropdownEvent', function(evt) {
-      console.log("evt", evt)
-      _this.updateDropdown(evt.detail.matches);
-    });
+document.addEventListener('updateDropdownEvent', function(evt) {
+  console.log("evt", evt)
+  _this.updateDropdown(evt.detail.matches);
+});
 ```
 
 This listener expects an array of objects with the following properties:
