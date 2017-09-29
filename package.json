@@ -1,5 +1,5 @@
 {
-  "name": "s-typeahead",
+  "name": "standards-typeahead",
   "version": "1.0.1",
   "description": "Native v1 web typeahead component",
   "dependencies": {

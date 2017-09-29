@@ -9,7 +9,7 @@ const uglify = require('rollup-plugin-uglify');
 
 require('events').EventEmitter.defaultMaxListeners = 0;
 
-let input = path.resolve(root, 'src', 's-typeahead.js');
+let input = path.resolve(root, 'src', 'standards-typeahead.js');
 let plugins = [
   string({include: 'src/**/*.css'}),
   buble()
@@ -21,9 +21,9 @@ export default [
     input,
     plugins,
     globals,
-    name: 'STypeahead',
+    name: 'StandardsTypeahead',
     output: {
-      file: path.resolve(root, 'dist', 's-typeahead.iife.js'),
+      file: path.resolve(root, 'dist', 'standards-typeahead.iife.js'),
       format: 'iife'
     }
   },
@@ -32,7 +32,7 @@ export default [
     plugins,
     globals,
     output: {
-      file: path.resolve(root, 'dist', 's-typeahead.cjs.js'),
+      file: path.resolve(root, 'dist', 'standards-typeahead.cjs.js'),
       format: 'cjs'
     }
   },
@@ -41,7 +41,7 @@ export default [
     plugins,
     globals,
     output: {
-      file: path.resolve(root, 'dist', 's-typeahead.es.js'),
+      file: path.resolve(root, 'dist', 'standards-typeahead.es.js'),
       format: 'es'
     }
   }

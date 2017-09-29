@@ -25,7 +25,7 @@ module.exports = function(config) {
     files: [
       'node_modules/@webcomponents/webcomponentsjs/webcomponents-lite.js',
       'node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js',
-      'dist/s-typeahead.iife.js',
+      'dist/standards-typeahead.iife.js',
 
       //test file
       'src/test.js',

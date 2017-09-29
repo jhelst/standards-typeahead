@@ -1,6 +1,6 @@
 import {addClass, hasClass, removeClass} from '../node_modules/s-utilities/src/manageClasses';
 import appendAfter from '../node_modules/s-utilities/src/appendAfter';
-import css from './s-typeahead.css';
+import css from './standards-typeahead.css';
 import DataStore from '../node_modules/s-utilities/src/DataStore';
 import findMatches from './findMatches';
 import generateList from './generateList';
@@ -8,7 +8,7 @@ import isJson from '../node_modules/s-utilities/src/isJson.js';
 import makeRequest from './makeRequest';
 import StringBuilder from '../node_modules/s-utilities/src/StringBuilder';
 
-class STypeahead extends HTMLElement {
+class StandardsTypeahead extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({mode: 'open'});
@@ -29,24 +29,38 @@ class STypeahead extends HTMLElement {
    let be = '</b>';
    let fragment = document.createDocumentFragment();
    let html = '';
-   let li, text;
-
+   let li, text, type;
+   let error = items[0].error;
    items.forEach((item, i) => {
      li = document.createElement('li');
-     let idx = item.toLowerCase().indexOf(this.currentValue.toLowerCase());
+     text = document.createElement('span');
+     type = document.createElement('span');
+     let idx = item.fullName.toLowerCase().indexOf(this.currentValue.toLowerCase());
      let len = this.currentValue.length;
-     let str = new StringBuilder(item).insert(idx, bs).insert(idx + len + 3, be).toString();
-     li.innerHTML = str;
+     // Don't highlight if there are no results.
+     let str;
+     if (error) {
+       str = item.fullName;
+     } else {
+       str = new StringBuilder(item.fullName).insert(idx, bs).insert(idx + len + 3, be).toString();
+     }
+     text.classList.add('name');
+     type.classList.add('type');
+     text.innerHTML = str;
+     type.innerHTML = item.type.toString();
+
+     li.setAttribute('id', item.id);
+     li.appendChild(text);
+     li.appendChild(type);
      fragment.appendChild(li);
    });
 
    this.dropdown.appendChild(fragment.cloneNode(true));
-
+    if (error) return;
    // setData checks whether dataObjects is undefined or not so no need to check here.
    // The items must be appended to the DOM first before the data can be set because the
    // property that the DataStore attaches to the DOM element is wiped out when the elements are appended.
    this.setData(dataObjects);
-
    this.bindItems();
  }
 
@@ -54,8 +68,9 @@ class STypeahead extends HTMLElement {
     if (nVal && nVal !== '' && nVal !== oVal) {
       if (name === 'options' && this._options) {
         Object.assign(this._options, isJson(nVal) ? JSON.parse(nVal) : {});
+        console.log(this._options.list);
         if (this._options.list && typeof this._options.list[0] === 'object') {
-          if (!this._options.propertyInObjectArrayToUse) throw new Error('propertyInObjectArrayToUse required if list contains objects');
+          // if (!this._options.propertyInObjectArrayToUse) throw new Error('propertyInObjectArrayToUse required if list contains objects');
           this._options.list = this._options.list.map((li) => li[this._options.propertyInObjectArrayToUse]);
         }
         if (this._options.placeholder) this.input.placeholder = this._options.placeholder;
@@ -79,6 +94,17 @@ class STypeahead extends HTMLElement {
     });
   }
 
+  /*
+   * bindSelectedItems
+   * Bind click and hover events to each selected item.
+   */
+  bindSelectedItems() {
+    this.selectedItemClickHandlers = [];
+    let selectedItems = this.getSelectedItems();
+    [].forEach.call(selectedItems, (item, i) => {
+      this.registerEventListener(item, 'mousedown', this.triggerRemove.bind(this), this.selectedItemClickHandlers);
+    });
+  }
   /*
    * clearData
    * Empty the DataStore of all data corresponding to the current list items.
@@ -120,12 +146,13 @@ class STypeahead extends HTMLElement {
    * Setup the initial dropdown.
    */
   createDropdown() {
+    // prevents creation of multiple dropdown container elements
+    if (this.dropdown) return;
     // This returns an object of {dropdown: DOM, wrapper: DOM}
     let list = generateList();
 
     // Grab the unordered list
     this.dropdown = list.dropdown;
-
     this.setIndex();
 
     // Hide the list
@@ -210,6 +237,14 @@ class STypeahead extends HTMLElement {
     return dropdownItems;
   }
 
+  getSelectedItems() {
+    let wrapper = this.shadowRoot.querySelectorAll('.wrapper');
+    if (wrapper){
+      let selectedItems = wrapper[0].getElementsByTagName('div');
+      return selectedItems;
+    }
+  }
+
   getHoverItems() {
     return this.dropdown.getElementsByClassName(this.hoverClass);
   }
@@ -233,11 +268,11 @@ class STypeahead extends HTMLElement {
       let i = this._options.list.find((item) => item.toLowerCase() === val.toLowerCase());
       return Promise.resolve(i ? i : '');
     }
-    return makeRequest(this._options.source, val, this._options.queryParams)
-      .then((matches) => {
-        let match = matches.find((m) => val === m[this._options.propertyInObjectArrayToUse]);
-        return match ? match[this._options.propertyInObjectArrayToUse] : null;
-      });
+    // return makeRequest(this._options.source, val, this._options.queryParams)
+    //   .then((matches) => {
+    //     let match = matches.find((m) => val === m[this._options.propertyInObjectArrayToUse]);
+    //     return match ? match[this._options.propertyInObjectArrayToUse] : null;
+    //   });
   }
 
   hideDropdown() {
@@ -250,22 +285,38 @@ class STypeahead extends HTMLElement {
    * and update the dropdown with the returned values.
    */
   onInputChange() {
+    let _this = this;
     if (this._options.list) {
       // When searching from a static list, find the matches and update the dropdown with these matches
       let matches = findMatches(this.currentValue, this._options.list);
       this.updateDropdown(matches);
-    } else if (this._options.source) {
-      // Otherwise, hook up to a server call and update the dropdown with the matches
-      makeRequest(this._options.source, this.currentValue, this._options.queryParams).then((matches) => {
-        matches = this._options.propertyInObjectArrayToUse ? matches.map((m) => m[this._options.propertyInObjectArrayToUse]) : matches;
-        this.updateDropdown(matches);
+    } else if (this._options.externalURL) {
+        document.addEventListener('updateDropdownEvent', function(evt) {
+          _this.updateDropdown(evt.detail.matches);
+        });
+      // Otherwise, emit event with value for searching. You should return 'updateDropdownEvent' event with the returned data object.
+      if (this.currentValue !== ''){
+        let eventStr;
+        if (this._options.uid) {
+         eventStr = this._options.uid + ':inputChangedEvent';
+        } else {
+          eventStr = 'inputChangedEvent';
+        }
+        document.dispatchEvent(new CustomEvent(eventStr, {detail: {value: this.currentValue, uid: this._options.uid}}));
+      } else {
+        this.clearSearch();
+      }
+      // makeRequest(this._options.source, this.currentValue, this._options.queryParams).then((matches) => {
+      //   matches = this._options.propertyInObjectArrayToUse ? matches.map((m) => m[this._options.propertyInObjectArrayToUse]) : matches;
+      //   this.updateDropdown(matches);
         // if (Array.isArray(matches)) {
         //   let labels = this.parseMatches(matches);
         //   this.updateDropdown(labels, matches);
         // } else {
         //   this.updateDropdown(matches);
         // }
-      });
+      // });
+
     }
   }
 
@@ -393,6 +444,30 @@ class STypeahead extends HTMLElement {
   }
 
   /*
+   * triggerRemove
+   * Perform default click behavior: element that the event is triggered on is removed
+   * selected item is removed from DOM, as well as this.selectedItems
+   */
+  triggerRemove(ev) {
+    let item;
+    if (ev) {
+      if (ev.path && ev.path[0].tagName === 'SPAN'){
+        item = ev;
+        // selected item wrapping div
+        let div = ev.path[2];
+        // selected item div id
+        let id = ev.path[1].id;
+        item = ev;
+        // remove item from selected items
+        item.path[1].remove();
+        this.unbindItem(div);
+        // remove selected item from this.selectedItems array
+        let i = this.selectedItems.findIndex(x => x.id == id);
+        this.selectedItems.splice(i, 1);
+      }
+    }
+  }
+  /*
    * triggerSelect
    * Perform default click behavior: element that the event is triggered on is activated
    * and all other active elements are deactivated.
@@ -403,14 +478,58 @@ class STypeahead extends HTMLElement {
     if (ev) {
       if (ev.target) {
         ev.stopPropagation();
-        item = ev.target;
+        item = ev.currentTarget;
       } else {
         item = ev;
       }
     }
 
     if (item) {
-      this.input.value = item.textContent;
+       if (!this.selectedItems){
+         this.selectedItems = [];
+       }
+       // Check if selected Item already exists, if so, do not add to DOM and this.selectedItems
+       let i = this.selectedItems.findIndex(x => x.id == item.id);
+       if (i !== -1) {
+         removeClass(item, this.hoverClass);
+         addClass(item, this.activeClass);
+         this.deselectItems(this.getDropdownItems());
+         this.clearSearch();
+         return;
+       }
+
+      // Create elements
+      let fragment = document.createDocumentFragment();
+      let div, innerDiv, spanName, spanType, spanX;
+      div = document.createElement('div');
+      innerDiv = document.createElement('div');
+      spanName = document.createElement('span');
+      spanType = document.createElement('span');
+      spanX = document.createElement('span');
+      // Add comma between place and type, for readability
+      let nameEl = item.getElementsByClassName('name');
+      let typeEl = item.getElementsByClassName('type');
+      let name = nameEl[0].innerText;
+      let type = typeEl[0].innerText;
+      spanName.innerHTML = name + ', ' + type;
+      // Decorate elements
+      spanName.classList.add('selected-name');
+      div.classList.add('selected-item');
+      div.setAttribute('id', item.id);
+      // Append elements
+      fragment.appendChild(div);
+      let el = fragment.getElementById(item.id);
+      el.appendChild(spanName);
+      el.appendChild(spanX);
+      this.dropdown.parentNode.insertBefore(fragment.cloneNode(true), this.dropdown.nextSibling);
+      // Add item to this.selectedItems array
+      let selectedItem = {name: spanName.innerHTML, id: item.id};
+      this.selectedItems.unshift(selectedItem);
+      // Add event bindings
+      this.bindSelectedItems();
+      // Clean up
+      this.input.value = '';
+      clearDropdown = true;
       removeClass(item, this.hoverClass);
       addClass(item, this.activeClass);
     } else if (this.options.requireSelectionFromList) {
@@ -420,7 +539,7 @@ class STypeahead extends HTMLElement {
         });
     }
     this.deselectItems(this.getDropdownItems());
-    document.dispatchEvent(new CustomEvent('selectionChangedEvent', {detail: {id: this._options.uid, value: this.input.value}}));
+    // document.dispatchEvent(new CustomEvent('selectionChangedEvent', {detail: {id: this._options.uid, value: this.input.value}}));
     if (clearDropdown) this.clearDropdown();
   }
 
@@ -446,6 +565,16 @@ class STypeahead extends HTMLElement {
 
     this.selectItem(this.index);
   }
+
+  /*
+   * unbindItems
+   * Unbind all events from all list items
+   */
+   unbindItem(item) {
+     item.removeEventListener('click', this.selectedItemClickHandlers, false);
+    //  console.log('this.selectedItemClickHandlers AFTER', this.selectedItemClickHandlers);
+    //TODO: REMOVE SELECTEDITEMCLICKHANLERS
+   }
 
   /*
    * unbindItems
@@ -482,8 +611,50 @@ class STypeahead extends HTMLElement {
       this.displayDropdown();
   }
 
+  /*
+   * updateSelectedItems
+   * This is triggered from setSelectedItems()
+   * Creates selected item tags from newly created this.selectedItems array
+   * Calls bindSelectedItems() to set bindings
+   */
+  updateSelectedItems(items) {
+    console.log("items", items);
+    let fragment = document.createDocumentFragment();
+    [].forEach.call(items, (item) => {
+      let div;
+      div = document.createElement('div');
+      let name = item.name.toString();
+      let innerDiv, spanName, spanType, spanX;
+      innerDiv = document.createElement('div');
+      spanName = document.createElement('span');
+      spanType = document.createElement('span');
+      spanX = document.createElement('span');
+      spanName.innerHTML = name;
+      spanName.classList.add('selected-name');
+      div.setAttribute('id', item.id);
+      fragment.appendChild(div);
+      div.classList.add('selected-item');
+      let el = fragment.getElementById(item.id);
+      el.appendChild(spanName);
+      el.appendChild(spanX);
+    })
+    this.dropdown.parentNode.insertBefore(fragment.cloneNode(true), this.dropdown.nextSibling);
+    this.bindSelectedItems();
+  }
+
   get options() {
     return this._options;
+  }
+
+  returnSelectedItems() {
+    let items = JSON.stringify(this.selectedItems);
+    let emptyArray = JSON.stringify([]);
+    return items || emptyArray;
+  }
+
+  setSelectedItems(items) {
+    this.selectedItems = items;
+    this.updateSelectedItems(items);
   }
 
   set options(options) {
@@ -496,6 +667,6 @@ class STypeahead extends HTMLElement {
   }
 }
 
-customElements.define('s-typeahead', STypeahead);
+customElements.define('standards-typeahead', StandardsTypeahead);
 
-export { STypeahead };
+export { StandardsTypeahead };

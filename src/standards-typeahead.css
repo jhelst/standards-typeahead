@@ -5,11 +5,15 @@
 }
 
 input {
+  box-shadow: var(--input-box-shadow, inset 0 3px 0 rgba(0,0,0,0.05));
   box-sizing: border-box;
   border: var(--border, 1px solid #ddd);
+  border-bottom-right-radius: var(--radius, 3px);
+  border-bottom-left-radius: var(--radius, 3px);
   border-top-right-radius: var(--radius, 3px);
   border-top-left-radius: var(--radius, 3px);
   color: var(--input-text-color, #444);
+  font-family: var(--font-family, arial);
   font-size: var(--font-size, 20px);
   outline: 0;
   padding: var(--input-padding, 10px);
@@ -51,5 +55,35 @@ li.highlight {
 
 li.hover {
   background-color: var(--hover, rgb(228,240,244));
+  cursor: pointer;
+}
+
+li.hover span {
+  cursor: pointer;
+}
+
+li .name {
+  font-weight: bold;
+}
+
+li .name, li .type {
+  display: block;
+}
+
+li:first-child {
+  border-top: var(--border, 1px solid #555);
+}
+
+.selected-item {
+  border: 1px solid #979797;
+  background-color: #979797;
+  color: #fff;
+  padding: 4px;
+  margin: 10px 0 10px 4px;
+}
+
+.selected-item .selected-name::before {
+  content: 'X';
+  padding: 0 8px 0 4px;
   cursor: pointer;
 }

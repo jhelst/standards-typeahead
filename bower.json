@@ -1,10 +1,11 @@
 {
-  "name": "s-typeahead",
+  "name": "standards-typeahead",
   "version": "1.0.0",
-  "description": "Native v1 typeahead web component",
-  "main": "dist/s-typeahead.iife.js",
+  "description": "Native v1 typeahead web component, supports multiple lines per dropdown item",
+  "main": "dist/standards-typeahead.iife.js",
   "authors": [
-    "Rob Hicks <rob@hixfamily.org>"
+    "Rob Hicks <rob@hixfamily.org>",
+    "Jeff Helsten <jeff@helsten.com>"
   ],
   "homepage": "",
   "ignore": [
